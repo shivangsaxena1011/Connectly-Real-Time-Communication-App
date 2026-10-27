@@ -54,3 +54,12 @@ class FeedAppTests(TestCase):
 
         comment = self.post.comments.first()
         self.assertEqual(comment.author, self.other_user)
+    def test_explore_view_authenticated(self):
+        self.client.login(username='author', password='Password123!')
+        res = self.client.get(reverse('explore'))
+        self.assertEqual(res.status_code, 200)
+
+    def test_explore_view_search(self):
+        self.client.login(username='author', password='Password123!')
+        res = self.client.get(reverse('explore') + '?q=Hello')
+        self.assertEqual(res.status_code, 200)
