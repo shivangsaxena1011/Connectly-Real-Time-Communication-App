@@ -275,3 +275,39 @@
   transition: opacity 0.15s;
 }
 .btn-download:hover { opacity: 1; }
+
+/* Missing utility and placeholder styles */
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.message-text {
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.dragover {
+  border-color: #4f46e5 !important;
+  background-color: #eef2ff !important;
+}

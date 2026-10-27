@@ -14,6 +14,8 @@ def chat_list_view(request):
     conv_data = []
     for conv in conversations:
         other_user = conv.get_other_participant(request.user)
+        if not other_user:
+            continue
         last_message = conv.messages.order_by('-timestamp').first()
         unread_count = conv.messages.filter(is_read=False).exclude(sender=request.user).count()
         conv_data.append({
@@ -36,6 +38,8 @@ def start_direct_chat_view(request, username):
 def chat_room_view(request, room_id):
     conversation = get_object_or_404(Conversation, id=room_id, participants=request.user)
     other_user = conversation.get_other_participant(request.user)
+    if not other_user:
+        return redirect('chat_list')
     
     # Mark messages as read on entry
     conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
@@ -63,7 +67,8 @@ def upload_attachment_view(request, room_id):
         return JsonResponse({'status': 'error', 'error': f'Attachment file size cannot exceed {max_size_mb}MB.'}, status=400)
 
     # Classify file type
-    ext = os.path.splitext(uploaded_file.name)[1].lower()
+    clean_filename = os.path.basename(uploaded_file.name)
+    ext = os.path.splitext(clean_filename)[1].lower()
     msg_type = 'image' if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp'] else 'file'
 
     # Save to database
@@ -73,7 +78,7 @@ def upload_attachment_view(request, room_id):
         content=text_content,
         message_type=msg_type,
         attachment=uploaded_file,
-        attachment_name=uploaded_file.name,
+        attachment_name=clean_filename,
         attachment_size=uploaded_file.size
     )
     conversation.save()  # update conversation timestamp

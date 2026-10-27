@@ -21,19 +21,31 @@ document.addEventListener('DOMContentLoaded', () => {
   let typingTimer = null;
 
   function scrollToBottom() {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   }
   scrollToBottom();
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"]/g, 
+      tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag)
+    );
+  }
 
   function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
   }
 
-  // --- Attachment Staging Preview Logic ---
-  attachmentInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  function stageFile(file) {
     if (!file) return;
-
     if (file.size > 15 * 1024 * 1024) {
       alert('File size exceeds the 15MB limit.');
       attachmentInput.value = '';
@@ -57,6 +69,33 @@ document.addEventListener('DOMContentLoaded', () => {
       previewImage.classList.add('hidden');
       previewFileIcon.classList.remove('hidden');
     }
+  }
+
+  // --- Drag and Drop onto Message Stream / Composer ---
+  ['dragenter', 'dragover'].forEach(evt => {
+    document.addEventListener(evt, (e) => {
+      e.preventDefault();
+      document.querySelector('.chat-container')?.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    document.addEventListener(evt, (e) => {
+      e.preventDefault();
+      document.querySelector('.chat-container')?.classList.remove('dragover');
+    });
+  });
+
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      stageFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // --- Attachment Staging Preview Logic ---
+  attachmentInput.addEventListener('change', (e) => {
+    stageFile(e.target.files[0]);
   });
 
   btnRemoveAttachment.addEventListener('click', () => {
@@ -74,35 +113,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let attachmentHTML = '';
     if (data.attachment_url) {
+      const safeUrl = encodeURI(data.attachment_url);
+      const safeName = escapeHTML(data.attachment_name || 'attachment');
+      const safeSize = escapeHTML(data.attachment_size || '');
+
       if (data.message_type === 'image' || data.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
         attachmentHTML = `
           <div class="chat-image-attachment">
-<a href="${data.attachment_url}" rel="noopener" target="_blank">
-<img alt="${data.attachment_name || 'image'}" class="chat-img-thumb" loading="lazy" src="${data.attachment_url}"/>
-</a>
-</div>
+            <a href="${safeUrl}" target="_blank" rel="noopener">
+              <img src="${safeUrl}" alt="${safeName}" class="chat-img-thumb" loading="lazy" />
+            </a>
+          </div>
         `;
       } else {
         attachmentHTML = `
           <div class="chat-file-attachment">
-<div class="file-icon-box">
-<svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="24">
-<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-<polyline points="14 2 14 8 20 8"></polyline>
-</svg>
-</div>
-<div class="file-details">
-<span class="file-name" title="${data.attachment_name}">${data.attachment_name}</span>
-<span class="file-size">${data.attachment_size || ''}</span>
-</div>
-<a class="btn-download" download="" href="${data.attachment_url}" title="Download file">
-<svg fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
-<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-<polyline points="7 10 12 15 17 10"></polyline>
-<line x1="12" x2="12" y1="15" y2="3"></line>
-</svg>
-</a>
-</div>
+            <div class="file-icon-box">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="file-details">
+              <span class="file-name" title="${safeName}">${safeName}</span>
+              <span class="file-size">${safeSize}</span>
+            </div>
+            <a href="${safeUrl}" download class="btn-download" title="Download file">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </a>
+          </div>
         `;
       }
     }
@@ -113,8 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="message-bubble">
         ${attachmentHTML}
         ${textContentHTML}
-        <span class="message-meta">${data.timestamp || 'Just now'}</span>
-</div>
+        <span class="message-meta">${escapeHTML(data.timestamp || 'Just now')}</span>
+      </div>
     `;
 
     if (data.content) {
@@ -133,33 +176,48 @@ document.addEventListener('DOMContentLoaded', () => {
     chatSocket = new WebSocket(socketUrl);
 
     chatSocket.onmessage = (e) => {
-      const data = JSON.parse(e.data);
+      try {
+        const data = JSON.parse(e.data);
 
-      if (data.type === 'chat_message') {
-        renderIncomingMessage(data);
-        if (data.sender !== currentUser) {
-          chatSocket.send(JSON.stringify({ type: 'mark_read' }));
+        if (data.type === 'chat_message') {
+          renderIncomingMessage(data);
+          if (data.sender !== currentUser && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({ type: 'mark_read' }));
+          }
+        } else if (data.type === 'typing') {
+          if (typingNotice) {
+            if (data.is_typing) {
+              typingNotice.classList.remove('hidden');
+            } else {
+              typingNotice.classList.add('hidden');
+            }
+          }
+          scrollToBottom();
+        } else if (data.type === 'user_status') {
+          if (statusIndicator) {
+            if (data.status === 'online') {
+              statusIndicator.textContent = 'online';
+              statusIndicator.className = 'status-indicator online';
+            } else {
+              statusIndicator.textContent = 'offline';
+              statusIndicator.className = 'status-indicator offline';
+            }
+          }
         }
-      } else if (data.type === 'typing') {
-        if (data.is_typing) {
-          typingNotice.classList.remove('hidden');
-        } else {
-          typingNotice.classList.add('hidden');
-        }
-        scrollToBottom();
-      } else if (data.type === 'user_status') {
-        if (data.status === 'online') {
-          statusIndicator.textContent = 'online';
-          statusIndicator.className = 'status-indicator online';
-        } else {
-          statusIndicator.textContent = 'offline';
-          statusIndicator.className = 'status-indicator offline';
-        }
+      } catch (err) {
+        console.error('Error handling WebSocket message:', err);
       }
     };
 
-    chatSocket.onclose = () => {
-      setTimeout(connectWebSocket, 2000);
+    chatSocket.onclose = (e) => {
+      // Reconnect automatically if closed unexpectedly
+      if (!e.wasClean) {
+        setTimeout(connectWebSocket, 2000);
+      }
+    };
+
+    chatSocket.onerror = (err) => {
+      console.warn('WebSocket encountered an issue:', err);
     };
   }
 
@@ -219,7 +277,9 @@ document.addEventListener('DOMContentLoaded', () => {
       chatSocket.send(JSON.stringify({ type: 'typing', is_typing: true }));
       clearTimeout(typingTimer);
       typingTimer = setTimeout(() => {
-        chatSocket.send(JSON.stringify({ type: 'typing', is_typing: false }));
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+          chatSocket.send(JSON.stringify({ type: 'typing', is_typing: false }));
+        }
       }, 1500);
     }
   });

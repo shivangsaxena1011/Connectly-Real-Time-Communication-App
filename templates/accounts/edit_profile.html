@@ -7,6 +7,17 @@
   <div class="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
     <h2 class="font-heading font-extrabold text-2xl text-slate-900 mb-6">Edit Your Profile</h2>
 
+    {% if u_form.errors or p_form.errors %}
+      <div class="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium space-y-1">
+        {% for field, errors in u_form.errors.items %}
+          <p><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</p>
+        {% endfor %}
+        {% for field, errors in p_form.errors.items %}
+          <p><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <form method="POST" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
 

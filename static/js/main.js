@@ -17,11 +17,14 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Like/Unlike Toggle via AJAX
+  
+  // Like/Unlike Toggle via AJAX with instant visual feedback
   document.querySelectorAll('.btn-like').forEach(button => {
     button.addEventListener('click', async (e) => {
       e.preventDefault();
       const postId = button.dataset.postId;
+      if (!postId) return;
+
       try {
         const res = await fetch(`/post/${postId}/like/`, {
           method: 'POST',
@@ -33,11 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           const data = await res.json();
           const countSpan = button.querySelector('.like-count');
-          countSpan.textContent = data.like_count;
+          if (countSpan) countSpan.textContent = data.like_count;
+
+          const icon = button.querySelector('.material-symbols-outlined');
           if (data.liked) {
-            button.classList.add('liked');
+            button.classList.add('liked', 'text-rose-600');
+            button.classList.remove('text-slate-500');
+            if (icon) icon.classList.add('fill');
           } else {
-            button.classList.remove('liked');
+            button.classList.remove('liked', 'text-rose-600');
+            button.classList.add('text-slate-500');
+            if (icon) icon.classList.remove('fill');
           }
         }
       } catch (err) {
@@ -46,14 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Follow/Unfollow Toggle
-  const followBtn = document.querySelector('.btn-follow');
-  if (followBtn) {
+  // Follow/Unfollow Toggle across all follow buttons
+  document.querySelectorAll('.btn-follow').forEach(followBtn => {
     followBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       const username = followBtn.dataset.username;
+      if (!username) return;
+
       try {
-        const res = await fetch(`/accounts/profile/${username}/follow/`, {
+        const res = await fetch(`/accounts/follow/${username}/`, {
           method: 'POST',
           headers: {
             'X-CSRFToken': csrftoken,
@@ -63,7 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           const data = await res.json();
           followBtn.textContent = data.following ? 'Unfollow' : 'Follow';
-          followBtn.className = data.following ? 'btn btn-outline btn-follow' : 'btn btn-primary btn-follow';
+          if (data.following) {
+            followBtn.classList.remove('btn-primary');
+            followBtn.classList.add('btn-outline');
+          } else {
+            followBtn.classList.remove('btn-outline');
+            followBtn.classList.add('btn-primary');
+          }
+
           const followersCounter = document.querySelector('#followers-counter');
           if (followersCounter) {
             followersCounter.textContent = data.followers_count;
@@ -73,5 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Follow error:', err);
       }
     });
-  }
+  });
+
 });
