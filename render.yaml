@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: connectly
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "daphne -b 0.0.0.0 -p $PORT connectly.asgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: connectly.settings
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "True"

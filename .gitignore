@@ -29,3 +29,5 @@ media/posts/
 # OS
 .DS_Store
 Thumbs.db
+
+staticfiles/
