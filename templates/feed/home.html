@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home Feed - Connectly{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Sidebar: Quick Profile & Navigation -->
+    <aside class="hidden lg:block lg:col-span-3 space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          {% if user.profile.avatar %}
+            <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="w-12 h-12 rounded-full object-cover border border-slate-200" />
+          {% else %}
+            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base uppercase">
+              {{ user.username|first }}
+            </div>
+          {% endif %}
+          <div class="overflow-hidden">
+            <h3 class="font-heading font-bold text-slate-900 truncate">{{ user.get_full_name|default:user.username }}</h3>
+            <p class="text-xs text-slate-500 truncate">@{{ user.username }}</p>
+          </div>
+        </div>
+        
+        <p class="text-xs text-slate-600 line-clamp-2 mb-4">{{ user.profile.bio|default:"No bio added yet." }}</p>
+        
+        <div class="grid grid-cols-2 gap-2 text-center py-2 border-t border-slate-100 text-xs">
+          <div>
+            <span class="block font-bold text-slate-900 text-sm">{{ user.followers_set.count }}</span>
+            <span class="text-slate-500">Followers</span>
+          </div>
+          <div>
+            <span class="block font-bold text-slate-900 text-sm">{{ user.following_set.count }}</span>
+            <span class="text-slate-500">Following</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100">
+          <a href="{% url 'profile' user.username %}" class="block text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1">View Full Profile &rarr;</a>
+        </div>
+      </div>
+
+      <!-- Quick Shortcuts -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-1 text-sm font-medium text-slate-700">
+        <a href="{% url 'home' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-semibold">
+          <span class="material-symbols-outlined text-xl">home</span> Home Feed
+        </a>
+        <a href="{% url 'explore' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition">
+          <span class="material-symbols-outlined text-xl">explore</span> Explore Trends
+        </a>
+        <a href="{% url 'chat_list' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition">
+          <span class="material-symbols-outlined text-xl">chat</span> Direct Chats
+        </a>
+      </div>
+    </aside>
+
+    <!-- Center Column: Post Creator & Feed Stream -->
+    <section class="lg:col-span-6 space-y-5">
+      
+      <!-- Create Post Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <form method="POST" enctype="multipart/form-data" action="{% url 'home' %}">
+          {% csrf_token %}
+          <div class="flex items-start gap-3">
+            {% if user.profile.avatar %}
+              <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover border border-slate-200 mt-1" />
+            {% else %}
+              <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm uppercase mt-1">
+                {{ user.username|first }}
+              </div>
+            {% endif %}
+            <div class="flex-1">
+              <textarea name="content" rows="3" required placeholder="What's happening in your circle today, @{{ user.username }}?" 
+                class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none placeholder-slate-400"></textarea>
+            </div>
+          </div>
+
+          <!-- Image attachment and submit action -->
+          <div class="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+            <label class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 cursor-pointer text-xs font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-100 transition">
+              <span class="material-symbols-outlined text-lg">image</span>
+              <span>Photo</span>
+              <input type="file" name="image" accept="image/*" class="hidden" onchange="document.getElementById('file-chosen-text').textContent = this.files[0]?.name || ''" />
+            </label>
+            <span id="file-chosen-text" class="text-xs text-indigo-600 truncate max-w-xs"></span>
+            
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2 rounded-xl shadow-sm hover:shadow transition">
+              Post to Feed
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Feed Stream -->
+      {% if posts %}
+        {% for post in posts %}
+          <article class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3" id="post-{{ post.id }}">
+            
+            <!-- Post Header -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <a href="{% url 'profile' post.author.username %}">
+                  {% if post.author.profile.avatar %}
+                    <img src="{{ post.author.profile.avatar.url }}" alt="{{ post.author.username }}" class="w-10 h-10 rounded-full object-cover border border-slate-200" />
+                  {% else %}
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm uppercase">
+                      {{ post.author.username|first }}
+                    </div>
+                  {% endif %}
+                </a>
+                <div>
+                  <a href="{% url 'profile' post.author.username %}" class="font-heading font-bold text-slate-900 text-sm hover:text-indigo-600 transition">
+                    {{ post.author.get_full_name|default:post.author.username }}
+                  </a>
+                  <p class="text-xs text-slate-400">@{{ post.author.username }} &bull; {{ post.created_at|timesince }} ago</p>
+                </div>
+              </div>
+
+              <!-- Author actions (Edit/Delete) -->
+              {% if post.author == request.user %}
+                <div class="flex items-center gap-1 text-slate-400">
+                  <a href="{% url 'post_edit' post.id %}" class="p-1 hover:text-indigo-600 rounded" title="Edit Post">
+                    <span class="material-symbols-outlined text-lg">edit</span>
+                  </a>
+                  <form method="POST" action="{% url 'post_delete' post.id %}" onsubmit="return confirm('Delete this post?');" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="p-1 hover:text-rose-600 rounded" title="Delete Post">
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Content -->
+            <p class="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
+
+            <!-- Image (if any) -->
+            {% if post.image %}
+              <div class="rounded-xl overflow-hidden border border-slate-100 max-h-96 bg-slate-100">
+                <img src="{{ post.image.url }}" alt="Post image" class="w-full h-full object-cover" loading="lazy" />
+              </div>
+            {% endif %}
+
+            <!-- Actions Bar: Like & Comments -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+              <div class="flex items-center gap-4">
+                <!-- AJAX Like Button -->
+                <button type="button" class="btn-action btn-like flex items-center gap-1.5 font-semibold text-slate-500 hover:text-rose-600 transition {% if post.id in user_liked_post_ids %}liked text-rose-600{% endif %}" data-post-id="{{ post.id }}">
+                  <span class="material-symbols-outlined text-lg {% if post.id in user_liked_post_ids %}fill{% endif %}">favorite</span>
+                  <span class="like-count">{{ post.likes.count }}</span>
+                </button>
+
+                <!-- Comments Toggle / Counter -->
+                <a href="{% url 'post_detail' post.id %}" class="flex items-center gap-1.5 font-semibold text-slate-500 hover:text-indigo-600 transition">
+                  <span class="material-symbols-outlined text-lg">chat_bubble</span>
+                  <span>{{ post.comments.count }}</span>
+                </a>
+              </div>
+
+              <!-- Direct Chat with Author -->
+              {% if post.author != request.user %}
+                <a href="{% url 'start_chat' post.author.username %}" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1" title="Message author">
+                  <span class="material-symbols-outlined text-sm">send</span>
+                  <span>Message</span>
+                </a>
+              {% endif %}
+            </div>
+
+            <!-- Inline Preview of Comments -->
+            {% if post.comments.all %}
+              <div class="pt-2 space-y-2 border-t border-slate-50">
+                {% for comment in post.comments.all|slice:":2" %}
+                  <div class="flex items-start gap-2 text-xs bg-slate-50 p-2.5 rounded-xl">
+                    <span class="font-bold text-slate-800">@{{ comment.author.username }}:</span>
+                    <span class="text-slate-600 flex-1">{{ comment.content }}</span>
+                    <span class="text-slate-400 text-[10px]">{{ comment.created_at|timesince }} ago</span>
+                  </div>
+                {% endfor %}
+                {% if post.comments.count > 2 %}
+                  <a href="{% url 'post_detail' post.id %}" class="block text-center text-xs text-indigo-600 hover:underline">
+                    View all {{ post.comments.count }} comments &rarr;
+                  </a>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <!-- Quick Add Comment -->
+            <form method="POST" action="{% url 'add_comment' post.id %}" class="flex items-center gap-2 pt-2">
+              {% csrf_token %}
+              <input type="text" name="content" required placeholder="Write a comment..." 
+                class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition" />
+              <button type="submit" class="bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition">
+                Send
+              </button>
+            </form>
+
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+          <span class="material-symbols-outlined text-5xl text-slate-300 mb-2">forum</span>
+          <h3 class="font-heading font-bold text-slate-800 text-lg">No posts yet</h3>
+          <p class="text-slate-500 text-sm max-w-sm mx-auto mt-1">Be the first to share your thoughts, stories, and connections on Connectly!</p>
+        </div>
+      {% endif %}
+
+    </section>
+
+    <!-- Right Sidebar: Active Direct Chats & Recommendations -->
+    <aside class="hidden lg:block lg:col-span-3 space-y-4">
+      
+      <!-- Direct Messages Widget -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-heading font-bold text-slate-900 text-sm">Direct Messages</h4>
+          <a href="{% url 'chat_list' %}" class="text-xs text-indigo-600 hover:underline font-semibold">View All</a>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">Chat in real-time with zero latency and instant file sharing.</p>
+        <a href="{% url 'chat_list' %}" class="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs py-2 rounded-xl transition">
+          <span class="material-symbols-outlined text-base">chat</span>
+          <span>Open Chat Inbox</span>
+        </a>
+      </div>
+
+      <!-- Discover People -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <h4 class="font-heading font-bold text-slate-900 text-sm mb-3">Connect With Peers</h4>
+        <div class="space-y-3">
+          <a href="{% url 'explore' %}" class="text-xs text-indigo-600 hover:underline block text-center font-semibold">
+            Explore and connect with people &rarr;
+          </a>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

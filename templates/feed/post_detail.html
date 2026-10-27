@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Post by @{{ post.author.username }} - Connectly{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <a href="{% url 'home' %}" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 mb-4">&larr; Back to Feed</a>
+
+  <article class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 mb-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="{% url 'profile' post.author.username %}">
+          {% if post.author.profile.avatar %}
+            <img src="{{ post.author.profile.avatar.url }}" alt="{{ post.author.username }}" class="w-12 h-12 rounded-full object-cover border border-slate-200" />
+          {% else %}
+            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base uppercase">
+              {{ post.author.username|first }}
+            </div>
+          {% endif %}
+        </a>
+        <div>
+          <a href="{% url 'profile' post.author.username %}" class="font-heading font-bold text-slate-900 text-base hover:text-indigo-600 transition">
+            {{ post.author.get_full_name|default:post.author.username }}
+          </a>
+          <p class="text-xs text-slate-400">@{{ post.author.username }} &bull; {{ post.created_at|date:"M d, Y g:i A" }}</p>
+        </div>
+      </div>
+
+      {% if post.author == request.user %}
+        <div class="flex items-center gap-2">
+          <a href="{% url 'post_edit' post.id %}" class="text-slate-400 hover:text-indigo-600" title="Edit">
+            <span class="material-symbols-outlined text-lg">edit</span>
+          </a>
+          <form method="POST" action="{% url 'post_delete' post.id %}" onsubmit="return confirm('Delete this post?');" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-slate-400 hover:text-rose-600" title="Delete">
+              <span class="material-symbols-outlined text-lg">delete</span>
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+
+    <p class="text-slate-900 text-base leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
+
+    {% if post.image %}
+      <div class="rounded-xl overflow-hidden border border-slate-100 max-h-[500px] bg-slate-50">
+        <img src="{{ post.image.url }}" alt="Post image" class="w-full h-full object-contain" />
+      </div>
+    {% endif %}
+
+    <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-sm">
+      <button type="button" class="btn-action btn-like flex items-center gap-2 font-semibold text-slate-500 hover:text-rose-600 transition {% if user_has_liked %}liked text-rose-600{% endif %}" data-post-id="{{ post.id }}">
+        <span class="material-symbols-outlined {% if user_has_liked %}fill{% endif %}">favorite</span>
+        <span class="like-count">{{ post.likes.count }}</span>
+      </button>
+
+      {% if post.author != request.user %}
+        <a href="{% url 'start_chat' post.author.username %}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">chat</span>
+          <span>Message Author</span>
+        </a>
+      {% endif %}
+    </div>
+  </article>
+
+  <!-- Comments Section -->
+  <section class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+    <h3 class="font-heading font-bold text-slate-900 text-base flex items-center gap-2">
+      <span class="material-symbols-outlined text-indigo-600">chat_bubble</span>
+      <span>Comments ({{ post.comments.count }})</span>
+    </h3>
+
+    <!-- Add Comment Form -->
+    <form method="POST" action="{% url 'add_comment' post.id %}" class="flex gap-2">
+      {% csrf_token %}
+      <input type="text" name="content" required placeholder="Add a public comment..." 
+        class="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 transition" />
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2 rounded-xl transition">
+        Comment
+      </button>
+    </form>
+
+    <!-- Comments List -->
+    <div class="space-y-3 pt-2">
+      {% for comment in post.comments.all %}
+        <div class="flex items-start justify-between bg-slate-50 p-3.5 rounded-xl text-sm">
+          <div class="flex items-start gap-3">
+            <a href="{% url 'profile' comment.author.username %}">
+              {% if comment.author.profile.avatar %}
+                <img src="{{ comment.author.profile.avatar.url }}" alt="{{ comment.author.username }}" class="w-8 h-8 rounded-full object-cover" />
+              {% else %}
+                <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase">
+                  {{ comment.author.username|first }}
+                </div>
+              {% endif %}
+            </a>
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="{% url 'profile' comment.author.username %}" class="font-heading font-bold text-slate-900 text-xs hover:underline">
+                  @{{ comment.author.username }}
+                </a>
+                <span class="text-slate-400 text-[10px]">{{ comment.created_at|timesince }} ago</span>
+              </div>
+              <p class="text-slate-700 text-xs mt-1">{{ comment.content }}</p>
+            </div>
+          </div>
+
+          {% if comment.author == request.user or post.author == request.user %}
+            <form method="POST" action="{% url 'delete_comment' comment.id %}" onsubmit="return confirm('Delete this comment?');">
+              {% csrf_token %}
+              <button type="submit" class="text-slate-400 hover:text-rose-600 p-1" title="Delete comment">
+                <span class="material-symbols-outlined text-sm">delete</span>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-slate-400 text-xs text-center py-4">No comments yet. Start the conversation!</p>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}

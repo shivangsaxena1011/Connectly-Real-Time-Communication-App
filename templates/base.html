@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Connectly - Real-Time Communication Platform{% endblock %}</title>
+  
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#4648d4',
+              600: '#3c3eb8',
+              700: '#31339c',
+            },
+            secondary: {
+              500: '#b4136d',
+              600: '#96105b',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Application Stylesheets -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/chat.css' %}">
+  
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar bg-white border-b border-slate-200 sticky top-0 z-50 px-4 py-3 shadow-sm">
+    <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="{% url 'home' %}" class="flex items-center gap-2 text-indigo-600 font-heading font-extrabold text-2xl tracking-tight no-underline">
+        <span class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-pink-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+          <span class="material-symbols-outlined text-xl">hub</span>
+        </span>
+        <span class="bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">Connectly</span>
+      </a>
+
+      <!-- Search Bar -->
+      <form action="{% url 'explore' %}" method="GET" class="hidden md:flex items-center bg-slate-100 rounded-full px-4 py-1.5 w-72 text-sm border border-slate-200 focus-within:border-indigo-500 focus-within:bg-white transition-all">
+        <span class="material-symbols-outlined text-slate-400 mr-2 text-lg">search</span>
+        <input type="text" name="q" placeholder="Search people & posts..." class="bg-transparent border-none outline-none w-full text-slate-700 placeholder-slate-400" />
+      </form>
+
+      <!-- Navigation Links & User Menu -->
+      <nav class="flex items-center gap-2 sm:gap-4">
+        {% if user.is_authenticated %}
+          <a href="{% url 'home' %}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-slate-100 font-medium text-sm transition">
+            <span class="material-symbols-outlined text-xl">home</span>
+            <span class="hidden sm:inline">Feed</span>
+          </a>
+          <a href="{% url 'explore' %}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-slate-100 font-medium text-sm transition">
+            <span class="material-symbols-outlined text-xl">explore</span>
+            <span class="hidden sm:inline">Explore</span>
+          </a>
+          <a href="{% url 'chat_list' %}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-slate-100 font-medium text-sm transition relative">
+            <span class="material-symbols-outlined text-xl">chat_bubble</span>
+            <span class="hidden sm:inline">Messages</span>
+          </a>
+          
+          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+          <!-- User Avatar & Profile Link -->
+          <a href="{% url 'profile' user.username %}" class="flex items-center gap-2 text-slate-800 hover:text-indigo-600 font-medium text-sm py-1 px-2 rounded-lg hover:bg-slate-100 transition">
+            {% if user.profile.avatar %}
+              <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="w-8 h-8 rounded-full object-cover border border-slate-200" />
+            {% else %}
+              <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase">
+                {{ user.username|first }}
+              </div>
+            {% endif %}
+            <span class="hidden md:inline font-semibold">@{{ user.username }}</span>
+          </a>
+
+          <!-- Logout -->
+          <a href="{% url 'logout' %}" class="text-slate-500 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 transition" title="Log Out">
+            <span class="material-symbols-outlined text-xl">logout</span>
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}" class="text-slate-700 hover:text-indigo-600 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-slate-100 transition">Log In</a>
+          <a href="{% url 'register' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-sm hover:shadow transition">Sign Up</a>
+        {% endif %}
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Flash Messages Notifications -->
+  {% if messages %}
+    <div class="max-w-2xl mx-auto w-full px-4 mt-4">
+      {% for message in messages %}
+        <div class="flex items-center justify-between p-3.5 mb-2 rounded-xl text-sm font-medium shadow-sm transition
+          {% if message.tags == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200
+          {% elif message.tags == 'error' %} bg-rose-50 text-rose-800 border border-rose-200
+          {% else %} bg-indigo-50 text-indigo-800 border border-indigo-200 {% endif %}">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">
+              {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+            </span>
+            <span>{{ message }}</span>
+          </div>
+          <button onclick="this.parentElement.remove()" class="text-current opacity-70 hover:opacity-100 text-lg leading-none font-bold">&times;</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main Body Content -->
+  <main class="flex-1 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="font-heading font-bold text-slate-700">Connectly</span>
+        <span>&bull;</span>
+        <span>Real-Time Social &amp; Communication Architecture</span>
+      </div>
+      <div>
+        <span>Built with Django Channels, Daphne, WebSockets &amp; Tailwind CSS</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Core JavaScript -->
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

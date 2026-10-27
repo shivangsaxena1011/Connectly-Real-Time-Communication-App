@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Messages Inbox - Connectly{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    
+    <!-- Inbox Header -->
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-indigo-600 text-2xl">chat</span>
+        <h2 class="font-heading font-extrabold text-xl text-slate-900">Direct Messages</h2>
+      </div>
+      <a href="{% url 'explore' %}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+        <span class="material-symbols-outlined text-sm">person_add</span>
+        <span>Start New Chat</span>
+      </a>
+    </div>
+
+    <!-- Conversation Stream -->
+    <div class="divide-y divide-slate-100">
+      {% for item in conversations %}
+        <a href="{% url 'chat_room' item.conversation.id %}" class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition no-underline text-inherit">
+          {% if item.other_user.profile.avatar %}
+            <img src="{{ item.other_user.profile.avatar.url }}" alt="{{ item.other_user.username }}" class="w-12 h-12 rounded-full object-cover border border-slate-200 flex-shrink-0" />
+          {% else %}
+            <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base uppercase flex-shrink-0">
+              {{ item.other_user.username|first }}
+            </div>
+          {% endif %}
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-heading font-bold text-slate-900 text-sm truncate">
+                {{ item.other_user.get_full_name|default:item.other_user.username }}
+                <span class="text-xs text-slate-400 font-normal">@{{ item.other_user.username }}</span>
+              </h3>
+              {% if item.last_message %}
+                <span class="text-[11px] text-slate-400 flex-shrink-0">{{ item.last_message.timestamp|timesince }} ago</span>
+              {% endif %}
+            </div>
+
+            <p class="text-xs text-slate-500 truncate">
+              {% if item.last_message %}
+                {% if item.last_message.sender == request.user %}<span class="font-semibold text-slate-700">You: </span>{% endif %}
+                {% if item.last_message.message_type == 'image' %}
+                  <span class="italic text-indigo-600">[Photo Attachment]</span>
+                {% elif item.last_message.message_type == 'file' %}
+                  <span class="italic text-indigo-600">[File Attachment: {{ item.last_message.attachment_name }}]</span>
+                {% else %}
+                  {{ item.last_message.content }}
+                {% endif %}
+              {% else %}
+                <span class="italic text-slate-400">No messages exchanged yet. Click to say hi!</span>
+              {% endif %}
+            </p>
+          </div>
+
+          {% if item.unread_count > 0 %}
+            <span class="bg-indigo-600 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+              {{ item.unread_count }}
+            </span>
+          {% endif %}
+        </a>
+      {% empty %}
+        <div class="p-12 text-center text-slate-400">
+          <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">forum</span>
+          <h4 class="font-heading font-bold text-slate-700 text-sm">No conversations yet</h4>
+          <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Visit the explore page or a user's profile to start your first real-time chat.</p>
+          <a href="{% url 'explore' %}" class="inline-block mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition">
+            Find People to Chat With
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
